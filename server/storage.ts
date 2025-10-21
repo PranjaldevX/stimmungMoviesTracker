@@ -1,37 +1,79 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { Movie, MovieCache, Feedback, InsertFeedback, StreamingSource } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // Movie cache operations
+  getCachedMovie(movieId: number): Promise<MovieCache | undefined>;
+  cacheMovie(movieId: number, movieData: Movie, streamingSources?: StreamingSource[]): Promise<MovieCache>;
+  
+  // Feedback operations
+  getFeedback(id: string): Promise<Feedback | undefined>;
+  getFeedbackByMovieId(movieId: number): Promise<Feedback[]>;
+  createFeedback(feedback: InsertFeedback): Promise<Feedback>;
+  deleteFeedback(id: string): Promise<boolean>;
+  
+  // Get all liked movies
+  getLikedMovies(): Promise<number[]>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private movieCache: Map<number, MovieCache>;
+  private feedback: Map<string, Feedback>;
 
   constructor() {
-    this.users = new Map();
+    this.movieCache = new Map();
+    this.feedback = new Map();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getCachedMovie(movieId: number): Promise<MovieCache | undefined> {
+    return this.movieCache.get(movieId);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+  async cacheMovie(
+    movieId: number,
+    movieData: Movie,
+    streamingSources?: StreamingSource[]
+  ): Promise<MovieCache> {
+    const cache: MovieCache = {
+      id: randomUUID(),
+      movieId,
+      movieData,
+      streamingSources,
+      cachedAt: new Date().toISOString(),
+    };
+    this.movieCache.set(movieId, cache);
+    return cache;
+  }
+
+  async getFeedback(id: string): Promise<Feedback | undefined> {
+    return this.feedback.get(id);
+  }
+
+  async getFeedbackByMovieId(movieId: number): Promise<Feedback[]> {
+    return Array.from(this.feedback.values()).filter(
+      (f) => f.movieId === movieId
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createFeedback(insertFeedback: InsertFeedback): Promise<Feedback> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const feedback: Feedback = {
+      ...insertFeedback,
+      id,
+      timestamp: new Date().toISOString(),
+    };
+    this.feedback.set(id, feedback);
+    return feedback;
+  }
+
+  async deleteFeedback(id: string): Promise<boolean> {
+    return this.feedback.delete(id);
+  }
+
+  async getLikedMovies(): Promise<number[]> {
+    return Array.from(this.feedback.values())
+      .filter((f) => f.liked)
+      .map((f) => f.movieId);
   }
 }
 
