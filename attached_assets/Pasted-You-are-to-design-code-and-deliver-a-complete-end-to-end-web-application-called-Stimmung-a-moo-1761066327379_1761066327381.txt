@@ -1,0 +1,212 @@
+You are to design, code, and deliver a complete end-to-end web application called “Stimmung” — a mood-based classic movie recommender.
+
+🎯 Goal
+
+Help users quickly find timeless/old gem movies (Bollywood, Hollywood, and international) that match their mood, available time, and preferences.
+Users can:
+
+Select filters (e.g., happy, sad, nostalgic, adventure, short, etc.), or
+
+Describe/narrate feelings, e.g., “Had a long day, want something light and comforting” → which an AI mood interpreter converts into structured search data.
+
+The app should highlight older, highly-rated films using TMDb, IMDb, or OMDb data (legally accessed), and also integrate Watchmode API for streaming availability.
+Focus on Hindi, English, Spanish, Italian, and German movies — including Hindi-dubbed films (even when the original language differs).
+
+⚙️ Deliverables
+
+Claude must generate a runnable MVP project with all code, structure, and instructions:
+
+1. 🧱 Project Repository
+
+Full structure like:
+
+stimmung/
+  frontend/ (React + Vite)
+  backend/ (FastAPI or Express as backend API)
+  docker-compose.yml
+  .env.example
+
+
+Include:
+
+Frontend: React app with components — MoodSelector, TextInput, ResultsGrid, MovieCard, FeedbackButtons.
+
+Backend: FastAPI (or Express) API with routes /interpret-mood, /search-movies, /feedback, /health.
+
+Database: MongoDB (preferred) or PostgreSQL.
+
+Mood interpreter: AI sub-module + fallback keyword classifier.
+
+Dockerfiles for frontend + backend and docker-compose.yml to run locally.
+
+Seed script for ~100 classic films.
+
+Unit tests for backend logic.
+
+Deployment guides for Vercel (frontend) and Render/Railway (backend).
+
+🧩 Architecture
+
+Provide:
+
+ASCII or Mermaid diagram showing data flow:
+
+User → Frontend → Backend API → Mood Interpreter → TMDb + Watchmode → DB Cache → Frontend UI
+
+
+Explain caching, DB usage, and API flow.
+
+🧠 Mood Interpreter
+
+Input: free text → output structured JSON:
+
+{
+  "text": "Had a long day, want something relaxing and short",
+  "mood": "relaxed",
+  "preferred_genres": ["comedy", "slice-of-life"],
+  "max_runtime_min": 120,
+  "era": {"from": 1970, "to": 2005},
+  "language_preference": "any",
+  "confidence": 0.9
+}
+
+
+Include:
+
+LLM prompt (for Claude/OpenAI) that performs mood classification + examples.
+
+3 sample user texts + expected outputs.
+
+Fallback deterministic ruleset (keywords → mood).
+
+🎬 Movie Search Logic
+
+When receiving structured mood data:
+
+Map mood → genres, era, runtime.
+
+Query TMDb API using:
+
+vote_average.gte=7.0
+
+vote_count.gte=500
+
+primary_release_date.lte=2005
+
+with_genres, with_original_language, and dynamic language parameter.
+
+Include results for:
+
+Hindi, English, Italian, German, Spanish
+
+Hindi-dubbed versions (original_language != hi, but spoken_languages or translations include "hi").
+
+Integrate Watchmode API:
+
+Function fetchAvailability(imdb_id) → returns available platforms (Netflix, Prime, etc.).
+
+Append availability + dubbed language info to each movie.
+
+Combine multi-language results into a unified list (deduplicated).
+
+🌍 SEO & Multi-Language
+
+SEO-friendly URLs: /movie/hindi/{slug}, /movie/spanish/{slug}, etc.
+
+Add <meta> + <link rel="alternate" hreflang="xx">.
+
+Canonical URLs per movie.
+
+Label all pages as “🔧 Testing Mode – Non-commercial”.
+
+⚖️ Legal & Attribution
+
+Use TMDb + Watchmode APIs under free non-commercial keys.
+
+Add TMDb attribution text in the footer.
+
+Mention OMDb and IMDb dataset legality notes.
+
+Mark affiliate integration as future-ready (FTC-compliant disclosure).
+
+🧠 Data & DB
+
+MongoDB Collections:
+
+movies_cache
+
+mood_tags
+
+feedback
+
+Include a seed script for 100 classic titles (any source or static JSON).
+
+🧩 MVP Features
+
+Manual + AI mood input.
+
+Movie fetch (multi-language, dubbed support).
+
+Watchmode streaming availability.
+
+Ratings + posters + short summary.
+
+Like/dislike feedback (stored in DB).
+
+Stretch goals:
+User accounts, personalization, watch history, multilingual interface, gamification.
+
+🧰 Tech Stack
+
+Frontend: React + Vite + Tailwind + Zustand (state).
+
+Backend: FastAPI (or Express if needed) + TMDb + Watchmode + MongoDB.
+
+Hosting: Vercel (frontend), Render/Railway (backend).
+
+Caching: In-memory + Mongo cache.
+
+Testing: Pytest or Jest.
+
+Env vars:
+
+TMDB_API_KEY=YOUR_TMDB_KEY
+WATCHMODE_API_KEY=YOUR_WATCHMODE_KEY
+DB_URI=YOUR_MONGODB_URI
+NODE_ENV=development
+
+🧩 Output Format
+
+Claude must deliver:
+
+Short summary (3–4 lines) of what will be built.
+
+Architecture diagram.
+
+Full repo structure (folder tree).
+
+Complete code for all files (clearly labeled).
+
+.env.example, Dockerfiles, and docker-compose.yml.
+
+Sample prompts + example outputs for mood interpretation.
+
+README.md with exact setup + deploy commands.
+
+Checklist of MVP done & future roadmap.
+
+🧩 Priority
+
+✅ Functioning MVP > advanced features.
+
+✅ Modular, clean, commented code.
+
+✅ Privacy: store only derived mood + feedback, not full free text.
+
+✅ Ready for future API/affiliate upgrade via .env.
+
+✅ Local + cloud deployable with minimal config.
+
+🧠 Ask Claude:
+
+“Generate the entire MVP project as described above. Begin with architecture + project tree, then output full backend and frontend code with Watchmode + TMDb integration, multilingual search, and mood interpreter (LLM + fallback). End with deployment and scaling roadmap.”
