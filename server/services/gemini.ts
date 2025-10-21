@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { MoodInterpretation, moods } from "@shared/schema";
+import { MoodInterpretation, moods, moodInterpretationSchema } from "@shared/schema";
 
 // Blueprint reference: javascript_gemini
 // Note that the newest Gemini model series is "gemini-2.5-flash" or "gemini-2.5-pro"
@@ -29,7 +29,7 @@ Respond with JSON in this exact format:
   "confidence": number
 }`;
 
-    const response = await ai.models.generateContent({
+    const result = await ai.models.generateContent({
       model: "gemini-2.5-pro",
       config: {
         systemInstruction: systemPrompt,
@@ -57,22 +57,30 @@ Respond with JSON in this exact format:
           required: ["mood", "preferredGenres", "confidence"],
         },
       },
-      contents: text,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text }],
+        },
+      ],
     });
 
-    const rawJson = response.text;
+    const rawJson = result.response.text();
     if (!rawJson) {
       throw new Error("Empty response from Gemini");
     }
 
-    const result = JSON.parse(rawJson) as MoodInterpretation;
+    const parsed = JSON.parse(rawJson);
     
-    // Validate mood is in allowed list
-    if (!moods.includes(result.mood as any)) {
-      result.mood = "relaxed"; // Default fallback
+    // Validate with Zod schema to ensure type safety
+    const validated = moodInterpretationSchema.parse(parsed);
+    
+    // Double-check mood is in allowed list
+    if (!moods.includes(validated.mood as any)) {
+      validated.mood = "relaxed"; // Default fallback
     }
 
-    return result;
+    return validated;
   } catch (error) {
     console.error("Gemini AI error:", error);
     // Fallback to keyword-based classification

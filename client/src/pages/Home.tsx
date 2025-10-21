@@ -1,80 +1,147 @@
 import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { MoodSelector } from "@/components/MoodSelector";
 import { AIMoodInterpreter } from "@/components/AIMoodInterpreter";
 import { ResultsGrid } from "@/components/ResultsGrid";
-import { Mood, Movie, StreamingSource } from "@shared/schema";
+import { Mood, SearchRequest, SearchResponse, StreamingSource } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import heroImage from "@assets/generated_images/Vintage_cinema_hero_background_712d6a19.png";
 
 export default function Home() {
   const [selectedMood, setSelectedMood] = useState<Mood | undefined>();
-  const [searchText, setSearchText] = useState<string>("");
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [streamingData] = useState<Record<number, StreamingSource[]>>({});
+  const [searchData, setSearchData] = useState<SearchRequest | null>(null);
+  const [streamingData, setStreamingData] = useState<Record<number, StreamingSource[]>>({});
   const [likedMovies, setLikedMovies] = useState<Set<number>>(new Set());
   const [dislikedMovies, setDislikedMovies] = useState<Set<number>>(new Set());
+  const { toast } = useToast();
+
+  // Search movies mutation
+  const searchMutation = useMutation({
+    mutationFn: async (request: SearchRequest) => {
+      return apiRequest<SearchResponse>("POST", "/api/search-movies", request);
+    },
+    onSuccess: async (data) => {
+      // Fetch streaming availability for all movies
+      const streamingPromises = data.movies
+        .filter((m) => m.imdbId)
+        .map(async (movie) => {
+          try {
+            const response = await fetch(`/api/movie/${movie.id}/availability`);
+            if (response.ok) {
+              const data = await response.json();
+              return { movieId: movie.id, sources: data.sources };
+            }
+          } catch (error) {
+            console.error(`Failed to fetch streaming for ${movie.id}`, error);
+          }
+          return null;
+        });
+
+      const streamingResults = await Promise.all(streamingPromises);
+      const newStreamingData: Record<number, StreamingSource[]> = {};
+      
+      streamingResults.forEach((result) => {
+        if (result && result.sources.length > 0) {
+          newStreamingData[result.movieId] = result.sources;
+        }
+      });
+
+      setStreamingData(newStreamingData);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Search Failed",
+        description: error.message || "Failed to search movies. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Feedback mutations
+  const feedbackMutation = useMutation({
+    mutationFn: async ({ movieId, liked }: { movieId: number; liked: boolean }) => {
+      return apiRequest("POST", "/api/feedback", {
+        movieId,
+        liked,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Feedback Failed",
+        description: error.message || "Failed to save feedback.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleMoodSelect = (mood: Mood) => {
     setSelectedMood(mood);
   };
 
   const handleAISubmit = async (text: string) => {
-    setSearchText(text);
-    setIsProcessing(true);
-    // Will be connected to backend in Phase 3
-    setTimeout(() => {
-      setIsProcessing(false);
-    }, 2000);
+    const request: SearchRequest = { text };
+    setSearchData(request);
+    searchMutation.mutate(request);
   };
 
   const handleQuickSearch = async () => {
     if (!selectedMood) return;
-    setIsLoading(true);
-    // Will be connected to backend in Phase 3
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
+    const request: SearchRequest = { mood: selectedMood };
+    setSearchData(request);
+    searchMutation.mutate(request);
   };
 
   const handleLike = (movieId: number) => {
+    const wasLiked = likedMovies.has(movieId);
+    
     setLikedMovies((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(movieId)) {
+      if (wasLiked) {
         newSet.delete(movieId);
       } else {
         newSet.add(movieId);
-        dislikedMovies.delete(movieId);
       }
       return newSet;
     });
+    
     setDislikedMovies((prev) => {
       const newSet = new Set(prev);
       newSet.delete(movieId);
       return newSet;
     });
+
+    if (!wasLiked) {
+      feedbackMutation.mutate({ movieId, liked: true });
+    }
   };
 
   const handleDislike = (movieId: number) => {
+    const wasDisliked = dislikedMovies.has(movieId);
+    
     setDislikedMovies((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(movieId)) {
+      if (wasDisliked) {
         newSet.delete(movieId);
       } else {
         newSet.add(movieId);
-        likedMovies.delete(movieId);
       }
       return newSet;
     });
+    
     setLikedMovies((prev) => {
       const newSet = new Set(prev);
       newSet.delete(movieId);
       return newSet;
     });
+
+    if (!wasDisliked) {
+      feedbackMutation.mutate({ movieId, liked: false });
+    }
   };
 
   return (
@@ -95,7 +162,7 @@ export default function Home() {
         <div className="relative z-10 max-w-4xl mx-auto px-4 md:px-8 text-center py-16 md:py-24 lg:py-32">
           <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl font-bold mb-4" data-testid="text-hero-title">
             Discover Classic Films{" "}
-            <span className="relative">
+            <span className="relative inline-block">
               That Match Your Mood
               <span className="absolute bottom-0 left-0 w-full h-1 bg-primary" />
             </span>
@@ -124,18 +191,18 @@ export default function Home() {
               <Button
                 data-testid="button-find-movies"
                 onClick={handleQuickSearch}
-                disabled={!selectedMood || isLoading}
+                disabled={!selectedMood || searchMutation.isPending}
                 size="lg"
                 className="rounded-full px-8 py-6 text-lg shadow-lg"
               >
-                Find My Movies
+                {searchMutation.isPending ? "Searching..." : "Find My Movies"}
               </Button>
             </TabsContent>
 
             <TabsContent value="ai">
               <AIMoodInterpreter
                 onSubmit={handleAISubmit}
-                isProcessing={isProcessing}
+                isProcessing={searchMutation.isPending}
               />
             </TabsContent>
           </Tabs>
@@ -144,9 +211,9 @@ export default function Home() {
 
       {/* Results Section */}
       <ResultsGrid
-        movies={movies}
+        movies={searchMutation.data?.movies || []}
         mood={selectedMood}
-        isLoading={isLoading}
+        isLoading={searchMutation.isPending}
         streamingData={streamingData}
         likedMovies={likedMovies}
         dislikedMovies={dislikedMovies}
