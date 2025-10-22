@@ -5,15 +5,17 @@ import { Footer } from "@/components/Footer";
 import { MoodSelector } from "@/components/MoodSelector";
 import { AIMoodInterpreter } from "@/components/AIMoodInterpreter";
 import { ResultsGrid } from "@/components/ResultsGrid";
-import { Mood, SearchRequest, SearchResponse, StreamingSource } from "@shared/schema";
+import { Mood, SearchRequest, SearchResponse, StreamingSource, eraOptions } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import heroImage from "@assets/generated_images/Vintage_cinema_hero_background_712d6a19.png";
 
 export default function Home() {
   const [selectedMood, setSelectedMood] = useState<Mood | undefined>();
+  const [selectedEra, setSelectedEra] = useState<typeof eraOptions[number]>(eraOptions[8]); // Default to "All Classics"
   const [searchData, setSearchData] = useState<SearchRequest | null>(null);
   const [streamingData, setStreamingData] = useState<Record<number, StreamingSource[]>>({});
   const [likedMovies, setLikedMovies] = useState<Set<number>>(new Set());
@@ -91,7 +93,11 @@ export default function Home() {
 
   const handleQuickSearch = async () => {
     if (!selectedMood) return;
-    const request: SearchRequest = { mood: selectedMood };
+    const request: SearchRequest = { 
+      mood: selectedMood,
+      yearFrom: selectedEra.from,
+      yearTo: selectedEra.to,
+    };
     setSearchData(request);
     searchMutation.mutate(request);
   };
@@ -188,15 +194,41 @@ export default function Home() {
                 onMoodSelect={handleMoodSelect}
               />
               
-              <Button
-                data-testid="button-find-movies"
-                onClick={handleQuickSearch}
-                disabled={!selectedMood || searchMutation.isPending}
-                size="lg"
-                className="rounded-full px-8 py-6 text-lg shadow-lg"
-              >
-                {searchMutation.isPending ? "Searching..." : "Find My Movies"}
-              </Button>
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-full max-w-xs">
+                  <label className="block text-sm font-medium mb-2 text-center">
+                    Era
+                  </label>
+                  <Select
+                    value={selectedEra.label}
+                    onValueChange={(value) => {
+                      const era = eraOptions.find(e => e.label === value);
+                      if (era) setSelectedEra(era);
+                    }}
+                  >
+                    <SelectTrigger data-testid="select-era" className="w-full">
+                      <SelectValue placeholder="Select an era" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {eraOptions.map((era) => (
+                        <SelectItem key={era.label} value={era.label}>
+                          {era.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  data-testid="button-find-movies"
+                  onClick={handleQuickSearch}
+                  disabled={!selectedMood || searchMutation.isPending}
+                  size="lg"
+                  className="rounded-full px-8 py-6 text-lg shadow-lg"
+                >
+                  {searchMutation.isPending ? "Searching..." : "Find My Movies"}
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="ai">

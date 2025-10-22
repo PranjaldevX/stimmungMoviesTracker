@@ -1,8 +1,11 @@
 import axios from "axios";
 import { Movie } from "@shared/schema";
+import { TMDB_CONFIG, DEFAULT_SEARCH_CONFIG, RECOMMENDED_MOVIE_IDS } from "../config/api";
 
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
-const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+// Centralized API configuration - to upgrade to premium or switch providers,
+// update the configuration in server/config/api.ts
+const TMDB_API_KEY = TMDB_CONFIG.apiKey;
+const TMDB_BASE_URL = TMDB_CONFIG.baseUrl;
 
 // TMDb genre IDs mapping
 const GENRE_MAP: Record<string, number> = {
@@ -89,11 +92,11 @@ export async function searchMoviesByMood(
   } = {}
 ): Promise<Movie[]> {
   const {
-    languages = ["hi", "en", "es", "it", "de"],
+    languages = DEFAULT_SEARCH_CONFIG.defaultLanguages,
     maxRuntime,
     minRuntime,
-    yearFrom = 1970,
-    yearTo = 2005,
+    yearFrom = DEFAULT_SEARCH_CONFIG.defaultYearFrom,
+    yearTo = DEFAULT_SEARCH_CONFIG.defaultYearTo,
   } = options;
 
   const genreIds = genres
@@ -114,8 +117,8 @@ export async function searchMoviesByMood(
           with_original_language: lang,
           "primary_release_date.gte": `${yearFrom}-01-01`,
           "primary_release_date.lte": `${yearTo}-12-31`,
-          "vote_average.gte": 7.0,
-          "vote_count.gte": 500,
+          "vote_average.gte": DEFAULT_SEARCH_CONFIG.minVoteAverage,
+          "vote_count.gte": DEFAULT_SEARCH_CONFIG.minVoteCount,
           sort_by: "vote_average.desc",
           page: 1,
         },
@@ -167,7 +170,21 @@ export async function searchMoviesByMood(
   // Sort by vote average and limit results
   return allMovies
     .sort((a, b) => b.voteAverage - a.voteAverage)
-    .slice(0, 20);
+    .slice(0, DEFAULT_SEARCH_CONFIG.maxResults);
+}
+
+// Get recommended movies (used when no search results found)
+export async function getRecommendedMovies(): Promise<Movie[]> {
+  const movies: Movie[] = [];
+  
+  for (const movieId of RECOMMENDED_MOVIE_IDS) {
+    const movie = await getMovieDetails(movieId);
+    if (movie) {
+      movies.push(movie);
+    }
+  }
+  
+  return movies;
 }
 
 export async function getMovieDetails(movieId: number): Promise<Movie | null> {

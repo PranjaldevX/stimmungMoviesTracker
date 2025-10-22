@@ -1,11 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { MoodInterpretation, moods, moodInterpretationSchema } from "@shared/schema";
+import { GEMINI_CONFIG } from "../config/api";
 
 // Blueprint reference: javascript_gemini
-// Note that the newest Gemini model series is "gemini-2.5-flash" or "gemini-2.5-pro"
-// do not change this unless explicitly requested by the user
+// Centralized API configuration - to upgrade to a different model (e.g., gemini-2.5-flash),
+// update GEMINI_CONFIG.model in server/config/api.ts
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const ai = new GoogleGenAI({ apiKey: GEMINI_CONFIG.apiKey });
 
 export async function interpretMood(text: string): Promise<MoodInterpretation> {
   try {
@@ -30,7 +31,7 @@ Respond with JSON in this exact format:
 }`;
 
     const result = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: GEMINI_CONFIG.model,
       config: {
         systemInstruction: systemPrompt,
         responseMimeType: "application/json",

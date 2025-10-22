@@ -91,6 +91,21 @@ export const movieCacheSchema = z.object({
 
 export type MovieCache = z.infer<typeof movieCacheSchema>;
 
+// Era options for filtering classic films
+export const eraOptions = [
+  { label: "1950s", from: 1950, to: 1960 },
+  { label: "1960s", from: 1960, to: 1970 },
+  { label: "1970s", from: 1970, to: 1980 },
+  { label: "1980s", from: 1980, to: 1990 },
+  { label: "1990s", from: 1990, to: 2000 },
+  { label: "2000s", from: 2000, to: 2010 },
+  { label: "2010s", from: 2010, to: 2020 },
+  { label: "2020s", from: 2020, to: 2025 },
+  { label: "All Classics", from: 1950, to: 2025 },
+] as const;
+
+export type EraOption = typeof eraOptions[number];
+
 // Search request/response schemas
 export const searchRequestSchema = z.object({
   mood: z.enum(moods).optional(),

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { interpretMood } from "./services/gemini";
-import { searchMoviesByMood, getMovieDetails } from "./services/tmdb";
+import { searchMoviesByMood, getMovieDetails, getRecommendedMovies } from "./services/tmdb";
 import { getStreamingAvailability } from "./services/watchmode";
 import {
   searchRequestSchema,
@@ -66,13 +66,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Search movies
-      const movies = await searchMoviesByMood(genres, {
+      let movies = await searchMoviesByMood(genres, {
         languages: validatedData.languages,
         maxRuntime: validatedData.maxRuntime || interpretation?.maxRuntimeMin,
         minRuntime: interpretation?.minRuntimeMin,
         yearFrom: validatedData.yearFrom || interpretation?.era?.from,
         yearTo: validatedData.yearTo || interpretation?.era?.to,
       });
+
+      // If no results found, return recommended movies instead
+      if (movies.length === 0) {
+        movies = await getRecommendedMovies();
+      }
 
       // Cache movies and fetch streaming availability
       for (const movie of movies) {

@@ -1,8 +1,11 @@
 import axios from "axios";
 import { StreamingSource } from "@shared/schema";
+import { WATCHMODE_CONFIG } from "../config/api";
 
-const WATCHMODE_API_KEY = process.env.WATCHMODE_API_KEY;
-const WATCHMODE_BASE_URL = "https://api.watchmode.com/v1";
+// Centralized API configuration - to switch providers,
+// update the configuration in server/config/api.ts
+const WATCHMODE_API_KEY = WATCHMODE_CONFIG.apiKey;
+const WATCHMODE_BASE_URL = WATCHMODE_CONFIG.baseUrl;
 
 interface WatchmodeSource {
   source_id: number;
