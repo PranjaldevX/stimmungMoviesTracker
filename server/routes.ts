@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { interpretMood } from "./services/gemini";
-import { searchMoviesByMood, getMovieDetails, getRecommendedMovies } from "./services/tmdb";
+import { searchMoviesByMood, getMovieDetails, getRecommendedMovies, getMovieCredits } from "./services/tmdb";
 import { getStreamingAvailability } from "./services/watchmode";
 import {
   searchRequestSchema,
@@ -179,7 +179,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/movie/:id/credits", async (req, res) => {
     try {
       const movieId = parseInt(req.params.id);
-      const { getMovieCredits } = await import("./services/tmdb");
       const credits = await getMovieCredits(movieId);
       res.json({ cast: credits });
     } catch (error: any) {

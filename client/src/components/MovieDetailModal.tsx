@@ -34,21 +34,31 @@ export function MovieDetailModal({
 }: MovieDetailModalProps) {
   const [cast, setCast] = useState<CastMember[]>([]);
   const [isLoadingCast, setIsLoadingCast] = useState(false);
+  const [castError, setCastError] = useState(false);
 
   useEffect(() => {
     if (movie && isOpen) {
+      setCast([]);
+      setCastError(false);
       setIsLoadingCast(true);
       fetch(`/api/movie/${movie.id}/credits`)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch cast");
+          return res.json();
+        })
         .then((data) => {
           setCast(data.cast || []);
         })
         .catch((error) => {
           console.error("Error fetching cast:", error);
+          setCastError(true);
         })
         .finally(() => {
           setIsLoadingCast(false);
         });
+    } else {
+      setCast([]);
+      setCastError(false);
     }
   }, [movie, isOpen]);
 
@@ -148,6 +158,10 @@ export function MovieDetailModal({
                 {isLoadingCast ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : castError ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Failed to load cast information</p>
                   </div>
                 ) : cast.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
