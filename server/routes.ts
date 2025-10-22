@@ -84,8 +84,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         yearTo: validatedData.yearTo || interpretation?.era?.to,
       };
 
-      let movies = [];
-      let tvSeries = [];
+      let movies: any[] = [];
+      let tvSeries: any[] = [];
 
       // Handle superhero-specific searches
       if (isSuperhero) {
