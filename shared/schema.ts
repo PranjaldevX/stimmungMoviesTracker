@@ -10,34 +10,76 @@ export const moods = [
   "intense",
   "relaxed",
   "mysterious",
+  "superhero",
 ] as const;
 
 export type Mood = typeof moods[number];
 
-// Language codes supported
-export const languages = ["hi", "en", "es", "it", "de"] as const;
+// Language codes supported (expanded for regional Indian languages and Asian dramas)
+export const languages = [
+  "hi", // Hindi
+  "ta", // Tamil
+  "te", // Telugu
+  "ml", // Malayalam
+  "kn", // Kannada
+  "bn", // Bengali
+  "mr", // Marathi
+  "pa", // Punjabi
+  "en", // English
+  "ko", // Korean
+  "tr", // Turkish
+  "ur", // Urdu (for Pakistani content)
+  "es", // Spanish
+  "it", // Italian
+  "de", // German
+] as const;
 export type Language = typeof languages[number];
 
-// Movie schema
-export const movieSchema = z.object({
+// Content types
+export const contentTypes = ["movie", "tv"] as const;
+export type ContentType = typeof contentTypes[number];
+
+// Base content schema (shared between movies and TV series)
+export const baseContentSchema = z.object({
   id: z.number(),
   title: z.string(),
   originalTitle: z.string().optional(),
   overview: z.string(),
   posterPath: z.string().nullable(),
   backdropPath: z.string().nullable(),
-  releaseDate: z.string(),
   voteAverage: z.number(),
   voteCount: z.number(),
-  runtime: z.number().nullable(),
   genres: z.array(z.string()),
   originalLanguage: z.string(),
   spokenLanguages: z.array(z.string()).optional(),
   isDubbed: z.boolean().optional(),
   imdbId: z.string().optional().nullable(),
+  contentType: z.enum(contentTypes),
+});
+
+// Movie schema
+export const movieSchema = baseContentSchema.extend({
+  releaseDate: z.string(),
+  runtime: z.number().nullable(),
+  contentType: z.literal("movie"),
 });
 
 export type Movie = z.infer<typeof movieSchema>;
+
+// TV Series schema
+export const tvSeriesSchema = baseContentSchema.extend({
+  firstAirDate: z.string(),
+  numberOfSeasons: z.number().optional(),
+  numberOfEpisodes: z.number().optional(),
+  episodeRuntime: z.array(z.number()).optional(),
+  contentType: z.literal("tv"),
+});
+
+export type TVSeries = z.infer<typeof tvSeriesSchema>;
+
+// Combined content type
+export const contentSchema = z.union([movieSchema, tvSeriesSchema]);
+export type Content = Movie | TVSeries;
 
 // Mood interpretation result
 export const moodInterpretationSchema = z.object({
@@ -91,6 +133,17 @@ export const movieCacheSchema = z.object({
 
 export type MovieCache = z.infer<typeof movieCacheSchema>;
 
+// TV Series cache schema
+export const tvCacheSchema = z.object({
+  id: z.string(),
+  tvId: z.number(),
+  tvData: tvSeriesSchema,
+  streamingSources: z.array(streamingSourceSchema).optional(),
+  cachedAt: z.string(),
+});
+
+export type TVCache = z.infer<typeof tvCacheSchema>;
+
 // Era options for filtering classic films
 export const eraOptions = [
   { label: "1950s", from: 1950, to: 1960 },
@@ -114,17 +167,39 @@ export const searchRequestSchema = z.object({
   maxRuntime: z.number().optional(),
   yearFrom: z.number().optional(),
   yearTo: z.number().optional(),
+  contentType: z.enum(contentTypes).optional(),
 });
 
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
 
 export const searchResponseSchema = z.object({
   movies: z.array(movieSchema),
+  tvSeries: z.array(tvSeriesSchema).optional(),
+  content: z.array(contentSchema).optional(),
   interpretation: moodInterpretationSchema.optional(),
   total: z.number(),
 });
 
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
+
+// Language labels for UI
+export const languageLabels: Record<Language, string> = {
+  hi: "Hindi",
+  ta: "Tamil",
+  te: "Telugu",
+  ml: "Malayalam",
+  kn: "Kannada",
+  bn: "Bengali",
+  mr: "Marathi",
+  pa: "Punjabi",
+  en: "English",
+  ko: "Korean",
+  tr: "Turkish",
+  ur: "Urdu",
+  es: "Spanish",
+  it: "Italian",
+  de: "German",
+};
 
 // Mood configuration with colors and icons
 export const moodConfig = {
@@ -175,5 +250,11 @@ export const moodConfig = {
     color: "265 50% 45%",
     icon: "Search",
     genres: ["mystery", "thriller", "crime"],
+  },
+  superhero: {
+    label: "Superhero",
+    color: "220 70% 50%",
+    icon: "Zap",
+    genres: ["action", "adventure", "science fiction", "fantasy"],
   },
 } as const;
