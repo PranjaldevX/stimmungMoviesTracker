@@ -10,6 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 22, 2025)
 
+### Movie Detail Modal Feature
+- Implemented clickable movie cards that open a detailed modal view
+- Added new API endpoint `/api/movie/:id/credits` to fetch cast information
+- Created `MovieDetailModal` component displaying:
+  - Full movie overview and synopsis
+  - Movie backdrop image with gradient overlay
+  - Cast members with profile pictures (up to 10 actors)
+  - Streaming platform availability with direct links
+  - Runtime, release year, rating, and genres
+- Modal fetches cast data dynamically with loading and error states
+- Added proper error handling and empty states for failed API calls
+- Improved user experience with seamless detail viewing without leaving the browsing context
+
 ### API Configuration Centralization
 - Created `server/config/api.ts` for centralized API management
 - All services (Gemini, TMDb, Watchmode) now import from centralized config
@@ -55,8 +68,9 @@ Preferred communication style: Simple, everyday language.
 **Key Components**:
 - `MoodSelector`: Visual mood selection with icon-based buttons
 - `AIMoodInterpreter`: Text input for natural language mood descriptions
-- `MovieCard`: Rich movie display with poster, metadata, and streaming sources
-- `ResultsGrid`: Responsive grid layout for search results
+- `MovieCard`: Rich movie display with poster, metadata, and streaming sources (clickable to open details)
+- `MovieDetailModal`: Full movie details modal with cast, streaming platforms, and synopsis
+- `ResultsGrid`: Responsive grid layout for search results with modal state management
 
 ### Backend Architecture
 
@@ -69,6 +83,7 @@ Preferred communication style: Simple, everyday language.
 - `/api/interpret-mood`: AI-powered mood interpretation using Gemini
 - `/api/search-movies`: Movie search with mood and filter parameters
 - `/api/movie/:id/availability`: Streaming availability lookup
+- `/api/movie/:id/credits`: Movie cast and crew information from TMDb
 
 **Data Storage**: In-memory storage implementation with interface-based design (`IStorage`) allowing future migration to persistent database. Current implementation uses `MemStorage` with Maps for movie cache and feedback storage.
 
