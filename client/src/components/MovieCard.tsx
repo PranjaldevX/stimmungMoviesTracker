@@ -14,6 +14,7 @@ interface MovieCardProps {
   streamingSources?: StreamingSource[];
   onLike?: (movieId: number) => void;
   onDislike?: (movieId: number) => void;
+  onClick?: (movie: Movie) => void;
   isLiked?: boolean;
   isDisliked?: boolean;
 }
@@ -23,6 +24,7 @@ export function MovieCard({
   streamingSources,
   onLike,
   onDislike,
+  onClick,
   isLiked = false,
   isDisliked = false,
 }: MovieCardProps) {
@@ -36,9 +38,10 @@ export function MovieCard({
 
   return (
     <div
-      className="group relative aspect-[2/3] rounded-lg overflow-hidden transition-transform duration-300 hover:scale-105"
+      className="group relative aspect-[2/3] rounded-lg overflow-hidden transition-transform duration-300 hover:scale-105 cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onClick?.(movie)}
       data-testid={`card-movie-${movie.id}`}
     >
       <img
@@ -119,7 +122,10 @@ export function MovieCard({
               <TooltipTrigger asChild>
                 <button
                   data-testid={`button-like-${movie.id}`}
-                  onClick={() => onLike?.(movie.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onLike?.(movie.id);
+                  }}
                   className={cn(
                     "p-2 rounded-full transition-all hover-elevate",
                     isLiked ? "text-primary" : "text-muted-foreground"
@@ -137,7 +143,10 @@ export function MovieCard({
               <TooltipTrigger asChild>
                 <button
                   data-testid={`button-dislike-${movie.id}`}
-                  onClick={() => onDislike?.(movie.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDislike?.(movie.id);
+                  }}
                   className={cn(
                     "p-2 rounded-full transition-all hover-elevate",
                     isDisliked ? "text-destructive" : "text-muted-foreground"

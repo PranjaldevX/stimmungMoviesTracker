@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Movie, StreamingSource, Mood } from "@shared/schema";
 import { MovieCard } from "./MovieCard";
+import { MovieDetailModal } from "./MovieDetailModal";
 import { Loader2, Film } from "lucide-react";
 
 interface ResultsGridProps {
@@ -23,6 +25,8 @@ export function ResultsGrid({
   onLike,
   onDislike,
 }: ResultsGridProps) {
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-24" data-testid="loading-results">
@@ -64,12 +68,20 @@ export function ResultsGrid({
               streamingSources={streamingData[movie.id]}
               onLike={onLike}
               onDislike={onDislike}
+              onClick={setSelectedMovie}
               isLiked={likedMovies.has(movie.id)}
               isDisliked={dislikedMovies.has(movie.id)}
             />
           ))}
         </div>
       </div>
+
+      <MovieDetailModal
+        movie={selectedMovie}
+        streamingSources={selectedMovie ? streamingData[selectedMovie.id] : []}
+        isOpen={!!selectedMovie}
+        onClose={() => setSelectedMovie(null)}
+      />
     </section>
   );
 }

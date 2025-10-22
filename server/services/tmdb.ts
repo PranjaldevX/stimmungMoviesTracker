@@ -207,3 +207,24 @@ export async function getMovieDetails(movieId: number): Promise<Movie | null> {
     return null;
   }
 }
+
+export async function getMovieCredits(movieId: number) {
+  try {
+    const response = await axios.get(`${TMDB_BASE_URL}/movie/${movieId}/credits`, {
+      params: {
+        api_key: TMDB_API_KEY,
+      },
+    });
+
+    const cast = response.data.cast || [];
+    return cast.slice(0, 10).map((member: any) => ({
+      id: member.id,
+      name: member.name,
+      character: member.character,
+      profilePath: member.profile_path,
+    }));
+  } catch (error) {
+    console.error(`Error getting movie credits for ${movieId}:`, error);
+    return [];
+  }
+}

@@ -175,6 +175,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get movie credits (cast)
+  app.get("/api/movie/:id/credits", async (req, res) => {
+    try {
+      const movieId = parseInt(req.params.id);
+      const { getMovieCredits } = await import("./services/tmdb");
+      const credits = await getMovieCredits(movieId);
+      res.json({ cast: credits });
+    } catch (error: any) {
+      console.error("Error getting movie credits:", error);
+      res.status(500).json({ error: error.message || "Failed to get credits" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
