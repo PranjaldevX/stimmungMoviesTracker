@@ -131,36 +131,24 @@ export async function searchMoviesByMood(
         seenIds.add(tmdbMovie.id);
 
         // Get detailed info for runtime
-        const details = await getMovieDetails(tmdbMovie.id);
-        if (!details) continue;
+        const movie = await getMovieDetails(tmdbMovie.id);
+        if (!movie) continue;
 
         // Filter by runtime if specified
-        if (maxRuntime && details.runtime && details.runtime > maxRuntime) {
+        if (maxRuntime && movie.runtime && movie.runtime > maxRuntime) {
           continue;
         }
-        if (minRuntime && details.runtime && details.runtime < minRuntime) {
+        if (minRuntime && movie.runtime && movie.runtime < minRuntime) {
           continue;
         }
 
-        const movie: Movie = {
-          id: details.id,
-          title: details.title,
-          originalTitle: details.original_title,
-          overview: details.overview,
-          posterPath: details.poster_path,
-          backdropPath: details.backdrop_path,
-          releaseDate: details.release_date,
-          voteAverage: details.vote_average,
-          voteCount: details.vote_count,
-          runtime: details.runtime,
-          genres: details.genres.map((g) => g.name),
-          originalLanguage: details.original_language,
-          spokenLanguages: details.spoken_languages.map((sl) => sl.iso_639_1),
-          isDubbed: details.original_language !== lang,
-          imdbId: details.imdb_id,
+        // Add isDubbed flag
+        const movieWithDubFlag: Movie = {
+          ...movie,
+          isDubbed: movie.originalLanguage !== lang,
         };
 
-        allMovies.push(movie);
+        allMovies.push(movieWithDubFlag);
       }
     } catch (error) {
       console.error(`Error searching TMDb for language ${lang}:`, error);
@@ -209,9 +197,9 @@ export async function getMovieDetails(movieId: number): Promise<Movie | null> {
       voteAverage: details.vote_average,
       voteCount: details.vote_count,
       runtime: details.runtime,
-      genres: details.genres.map((g) => g.name),
+      genres: details.genres?.map((g) => g.name) || [],
       originalLanguage: details.original_language,
-      spokenLanguages: details.spoken_languages.map((sl) => sl.iso_639_1),
+      spokenLanguages: details.spoken_languages?.map((sl) => sl.iso_639_1) || [],
       imdbId: details.imdb_id,
     };
   } catch (error) {
