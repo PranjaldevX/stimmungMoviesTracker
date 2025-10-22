@@ -57,10 +57,10 @@ export async function getStreamingAvailability(
 
     const sources = sourcesResponse.data as WatchmodeSource[];
 
-    // Filter and map to our format
+    // Filter and map to our format - support both US and India regions
     const streamingSources: StreamingSource[] = sources
-      .filter((source) => source.region === "US") // Focus on US for now
-      .slice(0, 5) // Limit to top 5 sources
+      .filter((source) => source.region === "US" || source.region === "IN")
+      .slice(0, 8) // Increased limit to show more sources including Indian platforms
       .map((source) => ({
         name: source.name,
         type: source.type,

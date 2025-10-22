@@ -2,7 +2,15 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { interpretMood } from "./services/gemini";
-import { searchMoviesByMood, getMovieDetails, getRecommendedMovies, getMovieCredits } from "./services/tmdb";
+import { 
+  searchMoviesByMood, 
+  getMovieDetails, 
+  getRecommendedMovies, 
+  getMovieCredits,
+  searchTVSeriesByMood,
+  getTVSeriesDetails,
+  searchSuperheroContent 
+} from "./services/tmdb";
 import { getStreamingAvailability } from "./services/watchmode";
 import {
   searchRequestSchema,
@@ -33,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Search movies based on mood or filters
+  // Search movies/TV based on mood or filters
   app.post("/api/search-movies", async (req, res) => {
     try {
       const validatedData = searchRequestSchema.parse(req.body);
@@ -46,6 +54,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Determine genres to search
       let genres: string[] = [];
+      const isSuperhero = validatedData.mood === "superhero" || interpretation?.mood === "superhero";
+      
       if (interpretation) {
         genres = interpretation.preferredGenres;
       } else if (validatedData.mood) {
@@ -59,23 +69,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
           intense: ["thriller", "crime", "mystery"],
           relaxed: ["comedy", "drama"],
           mysterious: ["mystery", "thriller", "crime"],
+          superhero: ["action", "adventure", "science fiction", "fantasy"],
         };
         genres = moodGenreMap[validatedData.mood] || ["drama"];
       } else {
         genres = ["drama"]; // Default
       }
 
-      // Search movies
-      let movies = await searchMoviesByMood(genres, {
+      const searchOptions = {
         languages: validatedData.languages,
         maxRuntime: validatedData.maxRuntime || interpretation?.maxRuntimeMin,
         minRuntime: interpretation?.minRuntimeMin,
         yearFrom: validatedData.yearFrom || interpretation?.era?.from,
         yearTo: validatedData.yearTo || interpretation?.era?.to,
-      });
+      };
 
-      // If no results found, return recommended movies instead
-      if (movies.length === 0) {
+      let movies = [];
+      let tvSeries = [];
+
+      // Handle superhero-specific searches
+      if (isSuperhero) {
+        const contentType = validatedData.contentType || "movie";
+        const superheroContent = await searchSuperheroContent({
+          contentType,
+          ...searchOptions,
+        });
+        
+        if (contentType === "movie") {
+          movies = superheroContent.filter(c => c.contentType === "movie");
+        } else {
+          tvSeries = superheroContent.filter(c => c.contentType === "tv");
+        }
+      } else {
+        // Regular mood-based search
+        const contentType = validatedData.contentType;
+        
+        if (!contentType || contentType === "movie") {
+          movies = await searchMoviesByMood(genres, searchOptions);
+        }
+        
+        if (!contentType || contentType === "tv") {
+          tvSeries = await searchTVSeriesByMood(genres, searchOptions);
+        }
+      }
+
+      // If no results found, return recommended movies
+      if (movies.length === 0 && tvSeries.length === 0) {
         movies = await getRecommendedMovies();
       }
 
@@ -83,7 +122,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const movie of movies) {
         await storage.cacheMovie(movie.id, movie);
         
-        // Fetch streaming availability if IMDb ID exists
         if (movie.imdbId) {
           const streamingSources = await getStreamingAvailability(movie.imdbId);
           if (streamingSources.length > 0) {
@@ -92,16 +130,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Cache TV series and fetch streaming availability
+      for (const series of tvSeries) {
+        await storage.cacheTVSeries(series.id, series);
+        
+        if (series.imdbId) {
+          const streamingSources = await getStreamingAvailability(series.imdbId);
+          if (streamingSources.length > 0) {
+            await storage.cacheTVSeries(series.id, series, streamingSources);
+          }
+        }
+      }
+
       const response: SearchResponse = {
         movies,
+        tvSeries,
         interpretation,
-        total: movies.length,
+        total: movies.length + tvSeries.length,
       };
 
       res.json(response);
     } catch (error: any) {
-      console.error("Error searching movies:", error);
-      res.status(500).json({ error: error.message || "Failed to search movies" });
+      console.error("Error searching content:", error);
+      res.status(500).json({ error: error.message || "Failed to search content" });
     }
   });
 
