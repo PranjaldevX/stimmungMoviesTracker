@@ -32,18 +32,23 @@ export default function Home() {
       return apiRequest<SearchResponse>("POST", "/api/search-movies", request);
     },
     onSuccess: async (data) => {
-      // Fetch streaming availability for all movies
-      const streamingPromises = data.movies
-        .filter((m) => m.imdbId)
-        .map(async (movie) => {
+      // Fetch streaming availability for all movies and TV series
+      const allContent = [
+        ...(data.movies || []),
+        ...(data.tvSeries || []),
+      ];
+      
+      const streamingPromises = allContent
+        .filter((content) => content.imdbId)
+        .map(async (content) => {
           try {
-            const response = await fetch(`/api/movie/${movie.id}/availability`);
+            const response = await fetch(`/api/movie/${content.id}/availability`);
             if (response.ok) {
-              const data = await response.json();
-              return { movieId: movie.id, sources: data.sources };
+              const result = await response.json();
+              return { contentId: content.id, sources: result.sources };
             }
           } catch (error) {
-            console.error(`Failed to fetch streaming for ${movie.id}`, error);
+            console.error(`Failed to fetch streaming for ${content.id}`, error);
           }
           return null;
         });
@@ -53,7 +58,7 @@ export default function Home() {
       
       streamingResults.forEach((result) => {
         if (result && result.sources.length > 0) {
-          newStreamingData[result.movieId] = result.sources;
+          newStreamingData[result.contentId] = result.sources;
         }
       });
 
