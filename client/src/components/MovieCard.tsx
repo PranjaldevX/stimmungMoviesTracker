@@ -1,5 +1,5 @@
-import { Heart, ThumbsDown, Star, Clock } from "lucide-react";
-import { Movie, StreamingSource } from "@shared/schema";
+import { Heart, ThumbsDown, Star, Clock, Tv } from "lucide-react";
+import { Movie, TVSeries, Content, StreamingSource } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/tooltip";
 
 interface MovieCardProps {
-  movie: Movie;
+  movie: Content;
   streamingSources?: StreamingSource[];
   onLike?: (movieId: number) => void;
   onDislike?: (movieId: number) => void;
-  onClick?: (movie: Movie) => void;
+  onClick?: (movie: Content) => void;
   isLiked?: boolean;
   isDisliked?: boolean;
 }
@@ -33,8 +33,14 @@ export function MovieCard({
     ? `https://image.tmdb.org/t/p/w500${movie.posterPath}`
     : "/placeholder-poster.png";
 
-  const year = movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : "N/A";
-  const runtime = movie.runtime ? `${movie.runtime}min` : "";
+  const isTVSeries = movie.contentType === "tv";
+  const year = isTVSeries 
+    ? (movie as TVSeries).firstAirDate ? new Date((movie as TVSeries).firstAirDate).getFullYear() : "N/A"
+    : (movie as Movie).releaseDate ? new Date((movie as Movie).releaseDate).getFullYear() : "N/A";
+  
+  const runtime = isTVSeries
+    ? (movie as TVSeries).numberOfSeasons ? `${(movie as TVSeries).numberOfSeasons} Season${(movie as TVSeries).numberOfSeasons! > 1 ? "s" : ""}` : ""
+    : (movie as Movie).runtime ? `${(movie as Movie).runtime}min` : "";
 
   return (
     <div
@@ -58,9 +64,12 @@ export function MovieCard({
         )}
       >
         <div className="absolute inset-0 p-4 flex flex-col justify-end">
-          <h3 className="text-xl font-bold text-white mb-1" data-testid={`text-title-${movie.id}`}>
-            {movie.title}
-          </h3>
+          <div className="flex items-center gap-2 mb-1">
+            {isTVSeries && <Tv className="w-4 h-4 text-primary" />}
+            <h3 className="text-xl font-bold text-white" data-testid={`text-title-${movie.id}`}>
+              {movie.title}
+            </h3>
+          </div>
           
           <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
             <span data-testid={`text-year-${movie.id}`}>{year}</span>

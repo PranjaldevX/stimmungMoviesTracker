@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Movie, StreamingSource, Mood } from "@shared/schema";
+import { Content, StreamingSource, Mood } from "@shared/schema";
 import { MovieCard } from "./MovieCard";
 import { MovieDetailModal } from "./MovieDetailModal";
 import { Loader2, Film } from "lucide-react";
 
 interface ResultsGridProps {
-  movies: Movie[];
+  movies: Content[];
   mood?: Mood;
   isLoading?: boolean;
   streamingData?: Record<number, StreamingSource[]>;
@@ -25,7 +25,7 @@ export function ResultsGrid({
   onLike,
   onDislike,
 }: ResultsGridProps) {
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<Content | null>(null);
 
   if (isLoading) {
     return (

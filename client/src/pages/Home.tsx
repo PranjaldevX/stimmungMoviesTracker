@@ -116,7 +116,7 @@ export default function Home() {
     );
   };
 
-  const allMovies = [
+  const allMovies: any[] = [
     ...(searchMutation.data?.movies || []),
     ...(searchMutation.data?.tvSeries || []),
   ];

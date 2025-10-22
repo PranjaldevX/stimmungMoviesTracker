@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Movie, StreamingSource } from "@shared/schema";
+import { Content, Movie, TVSeries, StreamingSource } from "@shared/schema";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Star, Clock, Calendar, Globe, ExternalLink, Loader2 } from "lucide-react";
+import { Star, Clock, Calendar, Globe, ExternalLink, Loader2, Tv } from "lucide-react";
 
 interface CastMember {
   id: number;
@@ -20,7 +20,7 @@ interface CastMember {
 }
 
 interface MovieDetailModalProps {
-  movie: Movie | null;
+  movie: Content | null;
   streamingSources?: StreamingSource[];
   isOpen: boolean;
   onClose: () => void;
@@ -72,8 +72,13 @@ export function MovieDetailModal({
     ? `https://image.tmdb.org/t/p/original${movie.backdropPath}`
     : null;
 
-  const year = movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : "N/A";
-  const runtime = movie.runtime ? `${movie.runtime}min` : "N/A";
+  const isTVSeries = movie.contentType === "tv";
+  const year = isTVSeries
+    ? (movie as TVSeries).firstAirDate ? new Date((movie as TVSeries).firstAirDate).getFullYear() : "N/A"
+    : (movie as Movie).releaseDate ? new Date((movie as Movie).releaseDate).getFullYear() : "N/A";
+  const runtime = isTVSeries
+    ? (movie as TVSeries).numberOfSeasons ? `${(movie as TVSeries).numberOfSeasons} Seasons` : "N/A"
+    : (movie as Movie).runtime ? `${(movie as Movie).runtime}min` : "N/A";
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
