@@ -8,6 +8,38 @@ Stimmung is a web application that helps users discover classic films from Bolly
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (October 22, 2025)
+
+### API Configuration Centralization
+- Created `server/config/api.ts` for centralized API management
+- All services (Gemini, TMDb, Watchmode) now import from centralized config
+- To upgrade to premium models or switch providers, simply edit `server/config/api.ts`
+- Example: Change `GEMINI_CONFIG.model` from "gemini-2.5-pro" to "gemini-2.5-flash" in one line
+
+### Era Filter Implementation
+- Added decade-based era filtering (1950s through 2020s)
+- Era options defined in `shared/schema.ts` with `eraOptions` array
+- UI dropdown in Home page allows users to select specific decades
+- Filters apply to TMDb search queries via yearFrom/yearTo parameters
+- Default era set to "All Classics" (1950-2025)
+
+### Footer Cleanup
+- Removed TMDb attribution and logo from footer
+- Simplified footer to 3 columns instead of 4
+- Professional appearance without third-party branding
+
+### Recommended Movies Fallback
+- When search returns no results, app now shows 3 curated classics:
+  - The Godfather (1972)
+  - The Godfather Part II (1974)
+  - Schindler's List (1993)
+- Implemented in `server/routes.ts` and `server/services/tmdb.ts`
+- Ensures users always see quality recommendations
+
+### Bug Fixes
+- Fixed Navigation component nested anchor tag warning
+- Link component from wouter now used correctly without wrapper tags
+
 ## System Architecture
 
 ### Frontend Architecture
