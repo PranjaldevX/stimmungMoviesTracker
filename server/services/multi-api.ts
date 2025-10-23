@@ -298,7 +298,9 @@ export async function getEnrichedTVSeriesDetails(
 }
 
 /**
- * Search across all content types with caching
+ * Search across all content types with in-memory caching
+ * Cache TTL: 15 minutes
+ * Reduces redundant API calls to TMDb, OMDb, and TVmaze
  */
 const searchCache = new Map<string, { data: Content[]; timestamp: number }>();
 const CACHE_TTL = 1000 * 60 * 15; // 15 minutes
@@ -307,15 +309,18 @@ export async function searchContentMultiAPI(
   options: SearchOptions,
   contentType?: "movie" | "tv"
 ): Promise<Content[]> {
-  // Generate cache key
+  // Generate cache key from search parameters
   const cacheKey = JSON.stringify({ options, contentType });
   const cached = searchCache.get(cacheKey);
 
+  // Return cached results if still valid
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    console.log("Returning cached results");
+    const age = Math.floor((Date.now() - cached.timestamp) / 1000);
+    console.log(`✓ Cache hit: Returning ${cached.data.length} results (age: ${age}s)`);
     return cached.data;
   }
 
+  console.log("✗ Cache miss: Fetching fresh results from APIs...");
   const results: Content[] = [];
 
   if (!contentType || contentType === "movie") {
@@ -328,8 +333,34 @@ export async function searchContentMultiAPI(
     results.push(...series);
   }
 
-  // Cache results
+  // Cache results for future requests
   searchCache.set(cacheKey, { data: results, timestamp: Date.now() });
+  console.log(`✓ Cached ${results.length} results for 15 minutes`);
 
   return results;
+}
+
+/**
+ * Clear the search cache (useful for testing or manual cache invalidation)
+ */
+export function clearSearchCache(): void {
+  const size = searchCache.size;
+  searchCache.clear();
+  console.log(`✓ Cleared ${size} cached search results`);
+}
+
+/**
+ * Get cache statistics for monitoring
+ */
+export function getCacheStats() {
+  const entries = Array.from(searchCache.entries());
+  const now = Date.now();
+  const validEntries = entries.filter(([_, v]) => now - v.timestamp < CACHE_TTL);
+  
+  return {
+    totalEntries: searchCache.size,
+    validEntries: validEntries.length,
+    expiredEntries: searchCache.size - validEntries.length,
+    cacheTTL: CACHE_TTL / 1000 / 60, // in minutes
+  };
 }

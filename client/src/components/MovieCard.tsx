@@ -29,8 +29,13 @@ export function MovieCard({
   isDisliked = false,
 }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  
+  // Handle poster URLs from different APIs
+  // OMDb returns full URLs, TMDb/TVmaze return paths
   const posterUrl = movie.posterPath
-    ? `https://image.tmdb.org/t/p/w500${movie.posterPath}`
+    ? (movie.posterPath.startsWith("http") 
+        ? movie.posterPath // OMDb/TVmaze full URL
+        : `https://image.tmdb.org/t/p/w500${movie.posterPath}`) // TMDb path
     : "/placeholder-poster.png";
 
   const isTVSeries = movie.contentType === "tv";
