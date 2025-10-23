@@ -232,6 +232,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get GOAT (Greatest Of All Time) content for genres
+  app.get("/api/goat-content", async (req, res) => {
+    try {
+      const { genre, region } = req.query;
+      
+      if (!genre || typeof genre !== "string") {
+        return res.status(400).json({ error: "Genre is required" });
+      }
+
+      // Build search options based on genre and region
+      let languages: string[] | undefined;
+      let regionalFocus: any = undefined;
+
+      if (genre === "Drama" && region && region !== "all") {
+        switch (region) {
+          case "indian":
+            languages = ["hi", "ta", "te", "ml", "kn", "bn", "mr", "pa"];
+            regionalFocus = "Indian";
+            break;
+          case "turkish":
+            languages = ["tr"];
+            regionalFocus = "Turkish";
+            break;
+          case "pakistani":
+            languages = ["ur"];
+            regionalFocus = "Pakistani";
+            break;
+          case "korean":
+            languages = ["ko"];
+            regionalFocus = "Korean";
+            break;
+        }
+      }
+
+      // Search for top-rated content in this genre
+      const content = await searchContentMultiAPI(
+        {
+          genres: [genre],
+          languages,
+          regionalFocus,
+          yearFrom: 1990, // Focus on relatively modern content for GOAT
+        },
+        undefined // Search both movies and TV
+      );
+
+      // Sort by rating and limit to top 20
+      const sortedContent = content
+        .sort((a, b) => (b.voteAverage || 0) - (a.voteAverage || 0))
+        .slice(0, 20);
+
+      // Fetch streaming data for all content
+      const streamingData: Record<number, any[]> = {};
+      for (const item of sortedContent) {
+        if (item.imdbId) {
+          const sources = await getStreamingAvailability(item.imdbId);
+          if (sources.length > 0) {
+            streamingData[item.id] = sources;
+          }
+        }
+      }
+
+      res.json({ 
+        content: sortedContent,
+        streamingData 
+      });
+    } catch (error: any) {
+      console.error("Error getting GOAT content:", error);
+      res.status(500).json({ error: error.message || "Failed to get GOAT content" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
