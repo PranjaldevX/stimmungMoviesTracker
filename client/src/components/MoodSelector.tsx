@@ -1,4 +1,4 @@
-import { Smile, CloudRain, Clock, Compass, Heart, Zap, Coffee, Search } from "lucide-react";
+import { Smile, CloudRain, Clock, Compass, Heart, Zap, Coffee, Search, Sun, Film, Star, AlertCircle } from "lucide-react";
 import { Mood, moodConfig } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,10 @@ const moodIcons = {
   Zap,
   Coffee,
   Search,
+  Sun,
+  Film,
+  Star,
+  AlertCircle,
 };
 
 interface MoodSelectorProps {
