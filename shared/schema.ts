@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Mood types for the application
+// Mood types for the application (Enhanced with new moods)
 export const moods = [
   "happy",
   "sad",
@@ -11,9 +11,55 @@ export const moods = [
   "relaxed",
   "mysterious",
   "superhero",
+  "feelGood",
+  "emotional",
+  "classicRetro",
+  "inspirational",
+  "suspenseful",
 ] as const;
 
 export type Mood = typeof moods[number];
+
+// Genre types
+export const genres = [
+  "Action",
+  "Drama",
+  "Romance",
+  "Thriller",
+  "Historical",
+  "Biopic",
+  "Family",
+  "Comedy",
+  "Crime",
+  "Mystery",
+  "Adventure",
+  "Science Fiction",
+  "Fantasy",
+  "Horror",
+  "War",
+  "Western",
+  "Music",
+  "Animation",
+  "Documentary",
+] as const;
+
+export type Genre = typeof genres[number];
+
+// API Source types
+export const apiSources = ["TMDb", "OMDb", "TVmaze"] as const;
+export type APISource = typeof apiSources[number];
+
+// Regional focus options
+export const regionalFocus = [
+  "Global",
+  "Indian",
+  "Turkish",
+  "Pakistani",
+  "Korean",
+  "Hollywood",
+  "Bollywood",
+] as const;
+export type RegionalFocus = typeof regionalFocus[number];
 
 // Language codes supported (expanded for regional Indian languages and Asian dramas)
 export const languages = [
@@ -39,7 +85,7 @@ export type Language = typeof languages[number];
 export const contentTypes = ["movie", "tv"] as const;
 export type ContentType = typeof contentTypes[number];
 
-// Base content schema (shared between movies and TV series)
+// Base content schema (shared between movies and TV series) - Enhanced with multi-API fields
 export const baseContentSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -55,6 +101,15 @@ export const baseContentSchema = z.object({
   isDubbed: z.boolean().optional(),
   imdbId: z.string().optional().nullable(),
   contentType: z.enum(contentTypes),
+  // Multi-API fields
+  apiSource: z.enum(apiSources).optional(),
+  cast: z.array(z.string()).optional(),
+  director: z.string().optional(),
+  writers: z.array(z.string()).optional(),
+  awards: z.string().optional(),
+  imdbRating: z.string().optional(),
+  rottenTomatoesRating: z.string().optional(),
+  streamingLink: z.string().optional(),
 });
 
 // Movie schema
@@ -73,6 +128,8 @@ export const tvSeriesSchema = baseContentSchema.extend({
   numberOfEpisodes: z.number().optional(),
   episodeRuntime: z.array(z.number()).optional(),
   contentType: z.literal("tv"),
+  status: z.string().optional(),
+  network: z.string().optional(),
 });
 
 export type TVSeries = z.infer<typeof tvSeriesSchema>;
@@ -146,20 +203,21 @@ export type TVCache = z.infer<typeof tvCacheSchema>;
 
 // Era options for filtering classic films
 export const eraOptions = [
+  { label: "All Time", from: 1900, to: 2025 },
   { label: "1950s", from: 1950, to: 1960 },
   { label: "1960s", from: 1960, to: 1970 },
   { label: "1970s", from: 1970, to: 1980 },
   { label: "1980s", from: 1980, to: 1990 },
+  { label: "Old Classics (Before 1990)", from: 1900, to: 1990 },
   { label: "1990s", from: 1990, to: 2000 },
   { label: "2000s", from: 2000, to: 2010 },
   { label: "2010s", from: 2010, to: 2020 },
   { label: "2020s", from: 2020, to: 2025 },
-  { label: "All Classics", from: 1950, to: 2025 },
 ] as const;
 
 export type EraOption = typeof eraOptions[number];
 
-// Search request/response schemas
+// Search request/response schemas (Enhanced)
 export const searchRequestSchema = z.object({
   mood: z.enum(moods).optional(),
   text: z.string().optional(),
@@ -168,6 +226,9 @@ export const searchRequestSchema = z.object({
   yearFrom: z.number().optional(),
   yearTo: z.number().optional(),
   contentType: z.enum(contentTypes).optional(),
+  genres: z.array(z.string()).optional(),
+  regionalFocus: z.enum(regionalFocus).optional(),
+  oldClassicsOnly: z.boolean().optional(),
 });
 
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
@@ -201,60 +262,90 @@ export const languageLabels: Record<Language, string> = {
   de: "German",
 };
 
-// Mood configuration with colors and icons
+// Mood configuration with colors and icons (Enhanced)
 export const moodConfig = {
   happy: {
     label: "Happy",
     color: "50 90% 60%",
     icon: "Smile",
-    genres: ["comedy", "family", "music"],
+    genres: ["Comedy", "Family", "Music"],
   },
   sad: {
     label: "Sad",
     color: "215 50% 50%",
     icon: "CloudRain",
-    genres: ["drama", "romance"],
+    genres: ["Drama", "Romance"],
   },
   nostalgic: {
     label: "Nostalgic",
     color: "25 70% 55%",
     icon: "Clock",
-    genres: ["drama", "family", "romance"],
+    genres: ["Drama", "Family", "Romance"],
   },
   adventurous: {
     label: "Adventurous",
     color: "165 60% 48%",
     icon: "Compass",
-    genres: ["adventure", "action", "western"],
+    genres: ["Adventure", "Action", "Western"],
   },
   romantic: {
     label: "Romantic",
     color: "330 65% 60%",
     icon: "Heart",
-    genres: ["romance", "drama"],
+    genres: ["Romance", "Drama"],
   },
   intense: {
     label: "Intense",
     color: "5 80% 52%",
     icon: "Zap",
-    genres: ["thriller", "crime", "mystery"],
+    genres: ["Thriller", "Crime", "Mystery"],
   },
   relaxed: {
     label: "Relaxed",
     color: "165 60% 48%",
     icon: "Coffee",
-    genres: ["comedy", "drama", "family"],
+    genres: ["Comedy", "Drama", "Family"],
   },
   mysterious: {
     label: "Mysterious",
     color: "265 50% 45%",
     icon: "Search",
-    genres: ["mystery", "thriller", "crime"],
+    genres: ["Mystery", "Thriller", "Crime"],
   },
   superhero: {
     label: "Superhero",
     color: "220 70% 50%",
     icon: "Zap",
-    genres: ["action", "adventure", "science fiction", "fantasy"],
+    genres: ["Action", "Adventure", "Science Fiction", "Fantasy"],
+  },
+  feelGood: {
+    label: "Feel-Good",
+    color: "160 70% 55%",
+    icon: "Sun",
+    genres: ["Comedy", "Family", "Romance"],
+  },
+  emotional: {
+    label: "Emotional",
+    color: "200 60% 50%",
+    icon: "Heart",
+    genres: ["Drama", "Romance", "Biopic"],
+  },
+  classicRetro: {
+    label: "Classic Retro",
+    color: "35 75% 55%",
+    icon: "Film",
+    genres: ["Drama", "Romance", "Western"],
+  },
+  inspirational: {
+    label: "Inspirational",
+    color: "45 80% 60%",
+    icon: "Star",
+    genres: ["Biopic", "Drama", "Family"],
+  },
+  suspenseful: {
+    label: "Suspenseful",
+    color: "350 70% 50%",
+    icon: "AlertCircle",
+    genres: ["Thriller", "Mystery", "Horror"],
   },
 } as const;
