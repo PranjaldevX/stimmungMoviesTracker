@@ -56,6 +56,19 @@ export function MovieCard({
         className="w-full h-full object-cover"
       />
       
+      {/* API Source Badge - Always visible */}
+      {movie.apiSource && (
+        <div className="absolute top-2 right-2 z-10">
+          <Badge
+            variant="outline"
+            className="text-xs backdrop-blur-sm bg-background/80"
+            data-testid={`badge-api-source-${movie.id}`}
+          >
+            {movie.apiSource}
+          </Badge>
+        </div>
+      )}
+
       <div
         className={cn(
           "absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent",

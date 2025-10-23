@@ -62,7 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (validatedData.mood) {
         // Map mood to genres using moodConfig
         const moodData = moodConfig[validatedData.mood];
-        genres = moodData?.genres || ["Drama"];
+        genres = moodData?.genres ? [...moodData.genres] : ["Drama"];
       } else {
         // Default to Drama
         genres = ["Drama"];
