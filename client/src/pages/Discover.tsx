@@ -38,7 +38,7 @@ export default function Discover() {
 
   // Fetch GOAT content for selected genre
   const { data: goatContent, isLoading } = useQuery<{ content: Content[]; streamingData: Record<number, any[]> }>({
-    queryKey: ["/api/goat-content", selectedGenre, selectedRegion],
+    queryKey: [`/api/goat-content?genre=${selectedGenre}&region=${selectedRegion}`],
     enabled: true,
   });
 
