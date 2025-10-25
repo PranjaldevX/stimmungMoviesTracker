@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useLocation, useSearch } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { GenreFilter } from "@/components/GenreFilter";
@@ -36,16 +37,35 @@ const moodIcons = {
 };
 
 export default function Home() {
+  const searchParams = new URLSearchParams(useSearch());
+  const [, setLocation] = useLocation();
   const [selectedMood, setSelectedMood] = useState<Mood | undefined>();
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedDecade, setSelectedDecade] = useState<number[]>([0]);
+  const [selectedDecade, setSelectedDecade] = useState<number[]>([7]); // Default to 2020s
   const [contentType, setContentType] = useState<ContentType>("movie");
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [streamingData, setStreamingData] = useState<Record<number, StreamingSource[]>>({});
   const [likedMovies, setLikedMovies] = useState<Set<number>>(new Set());
   const [dislikedMovies, setDislikedMovies] = useState<Set<number>>(new Set());
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const { toast } = useToast();
+  
+  // Handle URL search parameter
+  const urlSearchString = useSearch();
+  useEffect(() => {
+    const urlSearchQuery = searchParams.get('search');
+    if (urlSearchQuery && urlSearchQuery !== searchQuery) {
+      setSearchQuery(urlSearchQuery);
+      // Perform AI-based search using the query
+      searchMutation.mutate({
+        text: urlSearchQuery,
+        contentType,
+      });
+      // Clear the URL parameter after handling
+      setLocation('/');
+    }
+  }, [urlSearchString]);
 
   const decadeOptions = [
     { label: "1950s", value: 0, from: 1950, to: 1960 },
@@ -193,10 +213,21 @@ export default function Home() {
   const handleResetFilters = () => {
     setSelectedMood(undefined);
     setSelectedGenres([]);
-    setSelectedDecade([0]);
+    setSelectedDecade([7]);
     setContentType("movie");
     setSelectedLanguages([]);
   };
+  
+  // Auto-switch to TV when Drama genre is selected
+  useEffect(() => {
+    if (selectedGenres.includes("Drama") && contentType === "movie") {
+      setContentType("tv");
+      toast({
+        title: "Switched to TV Series",
+        description: "Drama genre is best for TV series like Korean and Pakistani dramas",
+      });
+    }
+  }, [selectedGenres]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -379,6 +410,8 @@ export default function Home() {
               dislikedMovies={dislikedMovies}
               onLike={handleLike}
               onDislike={handleDislike}
+              hasSearched={searchMutation.isSuccess || searchMutation.isError}
+              onResetFilters={handleResetFilters}
             />
           </div>
         </div>

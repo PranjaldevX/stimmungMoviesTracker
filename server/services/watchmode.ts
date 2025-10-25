@@ -70,7 +70,12 @@ export async function getStreamingAvailability(
       }));
 
     return streamingSources;
-  } catch (error) {
+  } catch (error: any) {
+    // Handle quota exceeded gracefully
+    if (error.response?.status === 429) {
+      console.log(`⚠️  Watchmode API quota exceeded - streaming data temporarily unavailable`);
+      return [];
+    }
     console.error(`Error fetching Watchmode data for IMDb ${imdbId}:`, error);
     return [];
   }
