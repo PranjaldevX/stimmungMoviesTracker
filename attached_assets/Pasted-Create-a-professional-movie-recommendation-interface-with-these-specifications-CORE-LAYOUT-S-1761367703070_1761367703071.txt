@@ -1,0 +1,52 @@
+Create a professional movie recommendation interface with these specifications:
+
+### CORE LAYOUT STRUCTURE
+- Single sidebar with consolidated filters
+- Main content area showing movie recommendations
+- Clean, minimalist design with cinematic aesthetic
+
+### FILTERS SECTION (Left Sidebar)
+**Primary Filters:**
+1. **Mood Selection** (Primary Feature)
+   - Grid layout: Happy, Sad, Nostalgic, Adventurous, Romantic, Intense, Relaxed, Mysterious, Superhero, Feel-Good, Emotional, Classic Retro, Inspirational, Suspenseful
+   - Visual indicators for selected mood
+
+2. **Content Type** (Radio buttons)
+   - Movies | TV Series | Both
+
+3. **Language** (Compact multi-select)
+   - Hindi, Tamil, Telugu, Malayalam, Kannada, Bengali, Marathi, Punjabi, English, Korean, Turkish, Urdu
+
+4. **Genre** (Collapsible multi-select)
+   - Action, Drama, Romance, Thriller, Comedy, Mystery, Adventure, Sci-Fi, Fantasy, Horror, Historical, Family, Crime, War, Western, Animation, Documentary
+
+5. **Era/Decade** (New - Slider or select range)
+   - 1950s-2020s (focus on classical cinema)
+
+### MAIN CONTENT AREA
+- Dynamic heading showing current mood selection
+- Grid of movie/TV series cards with posters
+- "No results" state with helpful suggestions
+- Loading states and empty states
+
+### REMOVED/REDUNDANT ELEMENTS ELIMINATED:
+- Duplicate mood selectors
+- Separate advanced filters section
+- Unnecessary dividers and repetitive language lists
+- "Bionic" genre (likely typo)
+- Multiple genre selection screens
+
+### VISUAL DESIGN
+- Dark theme preferred for cinematic feel
+- Clear typography hierarchy
+- Intuitive iconography
+- Responsive grid system
+- Professional spacing and alignment
+
+### INTERACTIONS
+- Real-time filtering as user selects options
+- Clear selected filters display
+- Reset filters option
+- Smooth transitions between states
+
+Implement this using modern CSS/JavaScript framework with focus on performance and user experience for classical movie enthusiasts.
