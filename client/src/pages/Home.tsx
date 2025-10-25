@@ -2,11 +2,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { MoodSelector } from "@/components/MoodSelector";
-import { MoodFilter } from "@/components/MoodFilter";
 import { GenreFilter } from "@/components/GenreFilter";
-import { AdvancedFilters } from "@/components/AdvancedFilters";
-import { AIMoodInterpreter } from "@/components/AIMoodInterpreter";
 import { ResultsGrid } from "@/components/ResultsGrid";
 import { 
   Mood, 
@@ -17,42 +13,56 @@ import {
   languages, 
   languageLabels, 
   ContentType,
-  RegionalFocus 
+  RegionalFocus,
+  moodConfig 
 } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import heroImage from "@assets/generated_images/Vintage_cinema_hero_background_712d6a19.png";
 import { Badge } from "@/components/ui/badge";
-import { X, Search, Sparkles, SlidersHorizontal } from "lucide-react";
+import { X, Search, SlidersHorizontal, Smile, CloudRain, Clock, Compass, Heart, Zap, Coffee, Sun, Film, Star, AlertCircle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const moodIcons = {
+  Smile, CloudRain, Clock, Compass, Heart, Zap, Coffee, Search, Sun, Film, Star, AlertCircle,
+};
 
 export default function Home() {
   const [selectedMood, setSelectedMood] = useState<Mood | undefined>();
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedEra, setSelectedEra] = useState<typeof eraOptions[number]>(eraOptions[0]); // Default to "All Time"
-  const [regionalFocus, setRegionalFocus] = useState<RegionalFocus | undefined>();
-  const [oldClassicsOnly, setOldClassicsOnly] = useState(false);
+  const [selectedDecade, setSelectedDecade] = useState<number[]>([0]);
   const [contentType, setContentType] = useState<ContentType>("movie");
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
-  const [searchData, setSearchData] = useState<SearchRequest | null>(null);
   const [streamingData, setStreamingData] = useState<Record<number, StreamingSource[]>>({});
   const [likedMovies, setLikedMovies] = useState<Set<number>>(new Set());
   const [dislikedMovies, setDislikedMovies] = useState<Set<number>>(new Set());
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const { toast } = useToast();
 
-  // Search movies mutation
+  const decadeOptions = [
+    { label: "1950s", value: 0, from: 1950, to: 1960 },
+    { label: "1960s", value: 1, from: 1960, to: 1970 },
+    { label: "1970s", value: 2, from: 1970, to: 1980 },
+    { label: "1980s", value: 3, from: 1980, to: 1990 },
+    { label: "1990s", value: 4, from: 1990, to: 2000 },
+    { label: "2000s", value: 5, from: 2000, to: 2010 },
+    { label: "2010s", value: 6, from: 2010, to: 2020 },
+    { label: "2020s", value: 7, from: 2020, to: 2030 },
+  ];
+
   const searchMutation = useMutation({
     mutationFn: async (request: SearchRequest) => {
       return apiRequest<SearchResponse>("POST", "/api/search-movies", request);
     },
     onSuccess: async (data) => {
-      // Fetch streaming availability for all movies and TV series
       const allContent = [
         ...(data.movies || []),
         ...(data.tvSeries || []),
@@ -77,7 +87,7 @@ export default function Home() {
       const newStreamingData: Record<number, StreamingSource[]> = {};
       
       streamingResults.forEach((result) => {
-        if (result && result.sources.length > 0) {
+        if (result && result.sources && result.sources.length > 0) {
           newStreamingData[result.contentId] = result.sources;
         }
       });
@@ -93,13 +103,9 @@ export default function Home() {
     },
   });
 
-  // Feedback mutations
   const feedbackMutation = useMutation({
     mutationFn: async ({ movieId, liked }: { movieId: number; liked: boolean }) => {
-      return apiRequest("POST", "/api/feedback", {
-        movieId,
-        liked,
-      });
+      return apiRequest("POST", "/api/feedback", { movieId, liked });
     },
     onError: (error: any) => {
       toast({
@@ -110,37 +116,16 @@ export default function Home() {
     },
   });
 
-  const handleMoodSelect = (mood: Mood) => {
-    setSelectedMood(mood);
-  };
-
-  const handleAISubmit = async (text: string) => {
-    const request: SearchRequest = { 
-      text,
-      genres: selectedGenres.length > 0 ? selectedGenres : undefined,
-      yearFrom: oldClassicsOnly ? 1900 : selectedEra.from,
-      yearTo: oldClassicsOnly ? 1990 : selectedEra.to,
-      contentType,
-      languages: selectedLanguages.length > 0 ? selectedLanguages as any[] : undefined,
-      regionalFocus,
-      oldClassicsOnly,
-    };
-    setSearchData(request);
-    searchMutation.mutate(request);
-  };
-
-  const handleFilterSearch = async () => {
+  const handleSearch = async () => {
+    const selectedDecadeData = decadeOptions[selectedDecade[0]];
     const request: SearchRequest = { 
       mood: selectedMood,
       genres: selectedGenres.length > 0 ? selectedGenres : undefined,
-      yearFrom: oldClassicsOnly ? 1900 : selectedEra.from,
-      yearTo: oldClassicsOnly ? 1990 : selectedEra.to,
+      yearFrom: selectedDecadeData.from,
+      yearTo: selectedDecadeData.to,
       contentType,
       languages: selectedLanguages.length > 0 ? selectedLanguages as any[] : undefined,
-      regionalFocus,
-      oldClassicsOnly,
     };
-    setSearchData(request);
     searchMutation.mutate(request);
   };
 
@@ -205,11 +190,18 @@ export default function Home() {
     }
   };
 
+  const handleResetFilters = () => {
+    setSelectedMood(undefined);
+    setSelectedGenres([]);
+    setSelectedDecade([0]);
+    setContentType("movie");
+    setSelectedLanguages([]);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
 
-      {/* Hero Section */}
       <section className="relative h-[500px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <img
@@ -233,172 +225,154 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 flex-1">
-        <Tabs defaultValue="quick" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8" data-testid="tabs-search-mode">
-            <TabsTrigger value="quick" data-testid="tab-quick-mood">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Quick Mood
-            </TabsTrigger>
-            <TabsTrigger value="ai" data-testid="tab-ai-interpreter">
-              AI Mood Interpreter
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Quick Mood Tab */}
-          <TabsContent value="quick" className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Filters Sidebar */}
-              <div className="lg:col-span-1">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <SlidersHorizontal className="w-5 h-5" />
-                      Filters
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Mood Selector */}
-                    <MoodFilter
-                      selectedMood={selectedMood}
-                      onMoodChange={setSelectedMood}
-                    />
-
-                    <Separator />
-
-                    {/* Genre Filter */}
-                    <GenreFilter
-                      selectedGenres={selectedGenres}
-                      onGenresChange={setSelectedGenres}
-                    />
-
-                    <Separator />
-
-                    {/* Content Type */}
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium">Content Type</label>
-                      <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
-                        <SelectTrigger data-testid="select-content-type">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="movie" data-testid="option-content-movie">Movies</SelectItem>
-                          <SelectItem value="tv" data-testid="option-content-tv">TV Series</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <Separator />
-
-                    {/* Language Filter */}
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium">Languages</label>
-                      <div className="flex flex-wrap gap-2">
-                        {languages.slice(0, 8).map((lang) => (
-                          <Badge
-                            key={lang}
-                            variant={selectedLanguages.includes(lang) ? "default" : "outline"}
-                            className="cursor-pointer hover-elevate"
-                            onClick={() => toggleLanguage(lang)}
-                            data-testid={`badge-language-${lang}`}
-                          >
-                            {languageLabels[lang]}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Advanced Filters (Collapsible) */}
-                    <Collapsible open={advancedFiltersOpen} onOpenChange={setAdvancedFiltersOpen}>
-                      <CollapsibleTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-between"
-                          data-testid="button-toggle-advanced-filters"
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-1">
+            <Card className="sticky top-4">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <SlidersHorizontal className="w-5 h-5" />
+                  Filters
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Mood Selection</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(moodConfig).map(([mood, config]) => {
+                      const Icon = moodIcons[config.icon as keyof typeof moodIcons];
+                      const isSelected = selectedMood === mood;
+                      
+                      return (
+                        <button
+                          key={mood}
+                          data-testid={`button-mood-${mood}`}
+                          onClick={() => setSelectedMood(isSelected ? undefined : mood as Mood)}
+                          className={cn(
+                            "flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all duration-200",
+                            "hover:shadow-md",
+                            isSelected
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50"
+                          )}
                         >
-                          <span className="text-sm font-medium">Advanced Filters</span>
-                          <SlidersHorizontal className="w-4 h-4" />
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="pt-4">
-                        <AdvancedFilters
-                          selectedEra={selectedEra}
-                          onEraChange={setSelectedEra}
-                          regionalFocus={regionalFocus}
-                          onRegionalFocusChange={setRegionalFocus}
-                          oldClassicsOnly={oldClassicsOnly}
-                          onOldClassicsOnlyChange={setOldClassicsOnly}
-                        />
-                      </CollapsibleContent>
-                    </Collapsible>
-
-                    <Button
-                      onClick={handleFilterSearch}
-                      className="w-full"
-                      size="lg"
-                      data-testid="button-search"
-                      disabled={searchMutation.isPending}
-                    >
-                      <Search className="w-4 h-4 mr-2" />
-                      {searchMutation.isPending ? "Searching..." : "Search"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Results */}
-              <div className="lg:col-span-2">
-                {/* Quick Mood Selector */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-4">Or select a mood quickly:</h3>
-                  <MoodSelector
-                    selectedMood={selectedMood}
-                    onMoodSelect={handleMoodSelect}
-                  />
+                          <Icon className="w-5 h-5" />
+                          <span className="text-xs font-medium text-center leading-tight">
+                            {config.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <ResultsGrid
-                  movies={allMovies}
-                  mood={selectedMood}
-                  isLoading={searchMutation.isPending}
-                  streamingData={streamingData}
-                  likedMovies={likedMovies}
-                  dislikedMovies={dislikedMovies}
-                  onLike={handleLike}
-                  onDislike={handleDislike}
-                />
-              </div>
-            </div>
-          </TabsContent>
+                <Separator />
 
-          {/* AI Interpreter Tab */}
-          <TabsContent value="ai" className="space-y-8">
-            <div className="max-w-3xl mx-auto">
-              <AIMoodInterpreter
-                onSubmit={handleAISubmit}
-                isProcessing={searchMutation.isPending}
-              />
-              
-              {searchMutation.data?.interpretation && (
-                <Card className="mt-6">
-                  <CardHeader>
-                    <CardTitle>Mood Interpretation</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <p><strong>Detected Mood:</strong> {searchMutation.data.interpretation.mood}</p>
-                      <p><strong>Recommended Genres:</strong> {searchMutation.data.interpretation.preferredGenres.join(", ")}</p>
-                      <p><strong>Confidence:</strong> {(searchMutation.data.interpretation.confidence * 100).toFixed(0)}%</p>
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Content Type</label>
+                  <RadioGroup value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="movie" id="radio-movie" data-testid="radio-content-movie" />
+                      <Label htmlFor="radio-movie" className="cursor-pointer">Movies</Label>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="tv" id="radio-tv" data-testid="radio-content-tv" />
+                      <Label htmlFor="radio-tv" className="cursor-pointer">TV Series</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
 
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Language</label>
+                    {selectedLanguages.length > 0 && (
+                      <button
+                        onClick={() => setSelectedLanguages([])}
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                        data-testid="button-clear-languages"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2">
+                    {languages.map((lang) => (
+                      <div key={lang} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`lang-${lang}`}
+                          checked={selectedLanguages.includes(lang)}
+                          onCheckedChange={() => toggleLanguage(lang)}
+                          data-testid={`checkbox-language-${lang}`}
+                        />
+                        <Label
+                          htmlFor={`lang-${lang}`}
+                          className="text-sm cursor-pointer"
+                        >
+                          {languageLabels[lang]}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                <GenreFilter
+                  selectedGenres={selectedGenres}
+                  onGenresChange={setSelectedGenres}
+                />
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">
+                    Era / Decade: {decadeOptions[selectedDecade[0]].label}
+                  </label>
+                  <Slider
+                    value={selectedDecade}
+                    onValueChange={setSelectedDecade}
+                    max={7}
+                    min={0}
+                    step={1}
+                    className="w-full"
+                    data-testid="slider-decade"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>1950s</span>
+                    <span>2020s</span>
+                  </div>
+                </div>
+
+                <div className="pt-4 space-y-2">
+                  <Button
+                    onClick={handleSearch}
+                    className="w-full"
+                    size="lg"
+                    data-testid="button-search"
+                    disabled={searchMutation.isPending}
+                  >
+                    <Search className="w-4 h-4 mr-2" />
+                    {searchMutation.isPending ? "Searching..." : "Search"}
+                  </Button>
+                  <Button
+                    onClick={handleResetFilters}
+                    variant="outline"
+                    className="w-full"
+                    data-testid="button-reset-filters"
+                  >
+                    Reset Filters
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-3">
             <ResultsGrid
               movies={allMovies}
-              mood={searchMutation.data?.interpretation?.mood}
+              mood={selectedMood}
               isLoading={searchMutation.isPending}
               streamingData={streamingData}
               likedMovies={likedMovies}
@@ -406,8 +380,8 @@ export default function Home() {
               onLike={handleLike}
               onDislike={handleDislike}
             />
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
 
       <Footer />
